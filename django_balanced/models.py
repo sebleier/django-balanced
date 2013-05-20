@@ -18,7 +18,7 @@ class BalancedResource(models.Model):
     _resource = balanced.Resource
     id = models.CharField(max_length=255, editable=False)
     uri = models.CharField(primary_key=True, max_length=255, editable=False)
-    created_at = models.DateTimeField(auto_created=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     class Meta:
         abstract = True
@@ -149,12 +149,13 @@ class Card(BalancedResource):
         card.save()
         super(Card, self).delete(using)
 
-    def debit(self, amount, description):
+    def debit(self, amount, description, **kwargs):
         account = self.user.balanced_account
         return account.debit(
             amount=amount,
             description=description,
             card=self,
+            **kwargs
         )
 
 
@@ -208,16 +209,10 @@ class Credit(BalancedResource):
 class Debit(BalancedResource):
     _resource = balanced.Debit
 
-    user = models.ForeignKey(User,
-                             related_name='debits',
-                             null=False)
-    amount = models.DecimalField(editable=False,
-                                 decimal_places=2,
-                                 max_digits=10)
+    user = models.ForeignKey(User, related_name='debits', null=False)
+    amount = models.DecimalField(editable=False, decimal_places=2, max_digits=10)
     description = models.CharField(editable=False, max_length=255)
-    card = models.ForeignKey(Card,
-                             related_name='debits',
-                             editable=False)
+    card = models.ForeignKey(Card, related_name='debits', editable=False)
 
     class Meta:
     #        app_label = 'Balanced'
