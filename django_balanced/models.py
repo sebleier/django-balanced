@@ -50,6 +50,10 @@ class BalancedResource(models.Model):
             if has and isinstance(value, (basestring, int, datetime)):
                 setattr(self, field, value)
 
+    def delete(self):
+        self.find().delete()
+        return super(BalancedResource, self).delete()
+
 
 class BankAccount(BalancedResource):
     _resource = balanced.BankAccount
