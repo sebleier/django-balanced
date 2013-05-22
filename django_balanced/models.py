@@ -139,7 +139,12 @@ class Card(BalancedResource):
         # a card must be saved elsewhere since we don't store the data required
         # to create a card from the django object
         if not self.uri:
-            account = self.user.balanced_account.find()
+            try:
+                account = self.user.balanced_account.find()
+            except Account.DoesNotExist:
+                self.user.balanced_account = Account.objects.create(user=self.user)
+                self.user.save()
+                account = self.user.balanced_account.find()
             account.add_card(card_uri=card_uri)
             self.uri = card_uri
         card = self.find()
@@ -217,6 +222,7 @@ class Debit(BalancedResource):
     amount = models.DecimalField(editable=False, decimal_places=2, max_digits=10)
     description = models.CharField(editable=False, max_length=255)
     card = models.ForeignKey(Card, related_name='debits', editable=False)
+    on_behalf_of = models.ForeignKey('Account', related_name="debits")
 
     class Meta:
     #        app_label = 'Balanced'
@@ -229,10 +235,15 @@ class Debit(BalancedResource):
                 self.card
             except ObjectDoesNotExist:
                 self.card = self.user.cards.all()[0]
+
+            if self.on_behalf_of is not None:
+                on_behalf_of = self.on_behalf_of.uri
+
             debit = account.debit(
                 amount=self.amount,
                 description=self.description,
                 source_uri=self.card.uri,
+                on_behalf_of=on_behalf_of,
             )
             try:
                 debit.save()
@@ -242,7 +253,7 @@ class Debit(BalancedResource):
             debit = self.find()
 
         self._sync(debit)
-        super(Debit, self).save(**kwargs)
+        return super(Debit, self).save(**kwargs)
 
     def delete(self, using=None):
         raise NotImplemented
