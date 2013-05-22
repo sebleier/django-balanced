@@ -265,11 +265,12 @@ class Account(BalancedResource):
 
         super(Account, self).save(**kwargs)
 
-    def debit(self, amount, description, card=None):
+    def debit(self, amount, description, card=None, **kwargs):
         debit = Debit(
             amount=amount,
             description=description,
             user=self.user,
+            **kwargs
         )
         if card:
             debit.card = card
